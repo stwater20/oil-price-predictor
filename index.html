@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>下週油價預測｜中油汽油柴油會漲還是跌？AI 模型每週預測 ⛽</title>
+<meta name="description" content="下週一中油油價會漲還是跌？用 7 年歷史資料訓練的迴歸模型，每週六自動預測 92／95／98 無鉛汽油與超級柴油的調價金額，並公開追蹤每次預測準確度。資料來自經濟部能源署與台灣中油。">
+<meta name="keywords" content="油價預測,下週油價,中油油價,汽油價格,柴油價格,油價漲跌,95汽油,92汽油,加油,油價公式,7D3B">
+<meta property="og:type" content="website">
+<meta property="og:title" content="下週油價預測｜中油汽油柴油會漲還是跌？⛽">
+<meta property="og:description" content="AI 迴歸模型每週自動預測中油調價，預測準確度全公開。">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:site_name" content="下週油價預測">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"下週油價預測","url":"","description":"每週自動預測中油汽柴油調價金額，公開追蹤準確度。","applicationCategory":"UtilityApplication","inLanguage":"zh-Hant-TW","isAccessibleForFree":true}
+</script>
+<style>
+  :root, :root[data-theme="dark"] {
+    --bg: #12141c; --card: #1c2030; --card2: #242a3e;
+    --text: #edf0f9; --muted: #93a0bd; --line: #2f3854;
+    --up: #ff7d94; --down: #5ad8a6; --flat: #93a0bd;
+    --accent: #ffd166; --blue: #6cb2ff; --glow: #232c4a;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f6fa; --card: #ffffff; --card2: #edf0f7;
+    --text: #1d2536; --muted: #5d6c86; --line: #d9e0ec;
+    --up: #c2364e; --down: #067a53; --flat: #5d6c86;
+    --accent: #9a6700; --blue: #1e5fc2; --glow: #dfe7f6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(ellipse 70% 40% at 50% -5%, var(--glow) 0%, transparent 60%);
+    color: var(--text); min-height: 100vh; padding: 24px 16px 60px;
+    transition: background-color .25s, color .25s;
+  }
+  .theme-toggle {
+    position: fixed; top: 14px; right: 14px; z-index: 10; width: 42px; height: 42px;
+    border-radius: 50%; border: 1px solid var(--line); background: var(--card);
+    color: var(--text); font-size: 1.15rem; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.15);
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 22px; }
+  h1 { font-size: 1.55rem; }
+  header p { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+  .hero {
+    background: linear-gradient(135deg, var(--card), var(--card2));
+    border: 1px solid var(--line); border-radius: 20px; padding: 26px 20px;
+    text-align: center; margin-bottom: 16px;
+  }
+  .hero .label { color: var(--blue); font-size: .85rem; letter-spacing: 3px; }
+  .verdicts { display: flex; gap: 14px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+  .verdict {
+    background: rgba(0,0,0,.18); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px 22px; min-width: 150px;
+  }
+  :root[data-theme="light"] .verdict { background: var(--card2); }
+  .verdict .fuel { color: var(--muted); font-size: .85rem; }
+  .verdict .delta { font-size: 1.9rem; font-weight: 800; margin: 4px 0; font-variant-numeric: tabular-nums; }
+  .verdict .word { font-size: .9rem; font-weight: 700; }
+  .u { color: var(--up); } .d { color: var(--down); } .f { color: var(--flat); }
+  .hero .meta { color: var(--muted); font-size: .78rem; margin-top: 14px; line-height: 1.7; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
+  .panel h2 { font-size: 1rem; margin-bottom: 12px; }
+  .prices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; }
+  .pcell { background: var(--card2); border-radius: 12px; padding: 12px 4px; }
+  .pcell b { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+  .pcell span { color: var(--muted); font-size: .78rem; }
+  .pcell .pred { font-size: .8rem; margin-top: 3px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  .hit { color: var(--down); font-weight: 700; }
+  .miss { color: var(--up); }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stat { flex: 1; min-width: 130px; background: var(--card2); border-radius: 12px; padding: 10px 12px; text-align: center; }
+  .stat b { display: block; font-size: 1.2rem; }
+  .stat span { color: var(--muted); font-size: .75rem; }
+  .expl { color: var(--muted); font-size: .84rem; line-height: 1.8; }
+  .chart-wrap { overflow-x: auto; }
+  footer { text-align: center; margin-top: 30px; color: var(--muted); font-size: .76rem; line-height: 1.9; }
+  footer a { color: var(--blue); }
+  .share-site { text-align: center; margin-top: 24px; padding: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+  .share-site p { color: var(--muted); font-size: .85rem; margin-bottom: 12px; }
+  .share-row { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .sbtn { width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1.05rem; color: #fff; cursor: pointer; border: none; font-family: inherit; text-decoration: none; }
+  .sbtn:active { transform: scale(.94); }
+  .sbtn.fb { background: #1877f2; } .sbtn.th { background: #000; border: 1px solid #444; }
+  .sbtn.x { background: #000; border: 1px solid #444; font-size: .95rem; }
+  .sbtn.line { background: #06c755; font-size: .62rem; }
+  .sbtn.gh { width: auto; border-radius: 999px; padding: 0 18px; gap: 6px; background: var(--card2); color: var(--text); border: 1px solid var(--line); font-size: .9rem; }
+  .loading { text-align: center; color: var(--muted); padding: 50px 0; }
+  @media (max-width: 480px) { .prices { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" title="切換深淺色">🌙</button>
+<div class="wrap">
+  <header>
+    <h1>⛽ 下週油價預測</h1>
+    <p>中油下週一會漲還是跌？迴歸模型每週六自動預測，準確度全公開。</p>
+  </header>
+
+  <div id="app" class="loading">資料載入中⋯</div>
+
+  <div class="share-site">
+    <p>覺得實用？分享給每週加油的朋友 ⛽</p>
+    <div class="share-row">
+      <button class="sbtn fb" onclick="shareSite('fb')">f</button>
+      <button class="sbtn line" onclick="shareSite('line')">LINE</button>
+      <button class="sbtn th" onclick="shareSite('threads')">@</button>
+      <button class="sbtn x" onclick="shareSite('x')">𝕏</button>
+      <a class="sbtn gh" href="https://github.com/stwater20/oil-price-predictor" target="_blank" rel="noopener">⭐ Star on GitHub</a>
+    </div>
+  </div>
+
+  <footer>
+    <p style="max-width:560px;margin:0 auto 12px;">
+      本站每週以<strong>簡單線性迴歸模型</strong>預測中油<strong>下週油價</strong>漲跌：以國際原油 7D3B 指標（杜拜 70%＋布蘭特 30%）的週均價變動與前次調價幅度為特徵，
+      用 2019 年至今約 400 週的歷史資料訓練，自動產出 92、95、98 無鉛汽油與超級柴油的調價預測。
+    </p>
+    資料來源：<a href="https://data.gov.tw/dataset/6029" target="_blank" rel="noopener">經濟部能源署 國際原油價格</a>・<a href="https://data.gov.tw/dataset/6339" target="_blank" rel="noopener">台灣中油牌價</a><br>
+    ⚠️ 預測僅供參考，模型未納入匯率與油價平穩機制，實際調價以中油每週日 12:00 公告為準。
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// ===== 深淺色 =====
+const sysTheme = () => matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+function applyTheme(t) { document.documentElement.dataset.theme = t; $("themeBtn").textContent = t === "dark" ? "🌙" : "☀️"; }
+applyTheme(localStorage.getItem("theme") || sysTheme());
+$("themeBtn").onclick = () => { const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; localStorage.setItem("theme", n); applyTheme(n); };
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", e => { if (!localStorage.getItem("theme")) applyTheme(e.matches ? "light" : "dark"); });
+
+// ===== 分享 =====
+function shareSite(to) {
+  const url = encodeURIComponent(location.href.split("#")[0]);
+  const text = encodeURIComponent(document.title.split("｜")[0] + "：" + ($("verdictText")?.dataset.share || "每週自動預測中油調價"));
+  const links = {
+    fb: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+    line: `https://social-plugins.line.me/lineit/share?url=${url}&text=${text}`,
+    threads: `https://www.threads.net/intent/post?text=${text}%0A${url}`,
+    x: `https://twitter.com/intent/tweet?text=${text}&url=${url}`
+  };
+  window.open(links[to], "_blank", "width=600,height=550");
+}
+
+const fmtD = s => { const d = new Date(s); return `${d.getMonth()+1}/${d.getDate()}(${"日一二三四五六"[d.getDay()]})`; };
+const cls = v => v > 0.05 ? "u" : v < -0.05 ? "d" : "f";
+const word = v => v > 0.05 ? "調漲 📈" : v < -0.05 ? "調降 📉" : "持平 ➖";
+const sign = v => v > 0 ? "+" + v.toFixed(1) : v.toFixed(1);
+
+async function main() {
+  const p = await (await fetch("data/prediction.json?t=" + Date.now())).json();
+  if (!p.generated) { $("app").innerHTML = `<div class="loading">${p.note || "資料尚未產生"}</div>`; return; }
+  const hist = await (await fetch("data/retail-history.json")).json();
+  const H = hist.rows.slice(-26); // 近半年走勢
+
+  // 準確度統計
+  const done = p.log.filter(e => e.actualGas != null);
+  const hits = done.filter(e => Math.abs(e.predGas - e.actualGas) <= 0.10001).length;
+  const dir = done.filter(e => Math.sign(e.predGas) === Math.sign(e.actualGas) || (Math.abs(e.predGas) <= 0.05 && Math.abs(e.actualGas) <= 0.05)).length;
+
+  // 走勢圖（95 無鉛，inline SVG）
+  const vals = H.map(r => r[2]);
+  const min = Math.min(...vals), max = Math.max(...vals), pad = (max - min) * 0.15 || 1;
+  const X = i => 20 + i * (600 / (H.length - 1));
+  const Y = v => 130 - (v - min + pad) / (max - min + 2 * pad) * 120;
+  const path = vals.map((v, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  const predY = Y(p.next.g95);
+
+  $("app").className = "";
+  $("app").innerHTML = `
+    <div class="hero">
+      <div class="label">下 週 一（${fmtD(p.next.date)}）預 測</div>
+      <div class="verdicts">
+        <div class="verdict">
+          <div class="fuel">汽油（92／95／98）</div>
+          <div class="delta ${cls(p.next.gasDelta)}">${sign(p.next.gasDelta)} 元</div>
+          <div class="word ${cls(p.next.gasDelta)}" id="verdictText" data-share="下週一汽油預測${word(p.next.gasDelta).slice(0,2)} ${sign(p.next.gasDelta)} 元">${word(p.next.gasDelta)}</div>
+        </div>
+        <div class="verdict">
+          <div class="fuel">超級柴油</div>
+          <div class="delta ${cls(p.next.dieselDelta)}">${sign(p.next.dieselDelta)} 元</div>
+          <div class="word ${cls(p.next.dieselDelta)}">${word(p.next.dieselDelta)}</div>
+        </div>
+      </div>
+      <div class="meta">
+        預測產生：${new Date(p.generated).toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false })}（台北時間）<br>
+        原油資料截至 ${p.crudeDataThrough}・7D3B 週均 $${p.crudeWeekAvg}（前週 $${p.crudePrevWeekAvg}）
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>⛽ 本週牌價 → 下週預測（元/公升）</h2>
+      <div class="prices">
+        ${[["92 無鉛", "g92"], ["95 無鉛", "g95"], ["98 無鉛", "g98"], ["超級柴油", "diesel"]].map(([n, k]) => `
+          <div class="pcell"><span>${n}</span><b>${p.current[k].toFixed(1)}</b>
+          <div class="pred ${cls(p.next[k] - p.current[k])}">→ ${p.next[k].toFixed(1)}</div></div>`).join("")}
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>📈 95 無鉛近半年走勢</h2>
+      <div class="chart-wrap">
+      <svg viewBox="0 0 660 150" width="100%" style="min-width:400px">
+        <path d="${path}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="${X(H.length-1)}" cy="${Y(vals[vals.length-1])}" r="4" fill="var(--blue)"/>
+        <circle cx="${X(H.length-1) + 22}" cy="${predY}" r="4.5" fill="var(--accent)"/>
+        <text x="${X(H.length-1) + 30}" y="${predY + 4}" fill="var(--accent)" font-size="12" font-weight="700">預測 ${p.next.g95.toFixed(1)}</text>
+        <text x="20" y="146" fill="var(--muted)" font-size="10">${H[0][0]}</text>
+        <text x="${X(H.length-1) - 40}" y="146" fill="var(--muted)" font-size="10">${H[H.length-1][0]}</text>
+      </svg>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>🎯 模型準確度（誠實公開）</h2>
+      <div class="stats">
+        <div class="stat"><b>${done.length ? Math.round(dir / done.length * 100) + "%" : "－"}</b><span>上線後方向命中（${done.length} 次）</span></div>
+        <div class="stat"><b>${done.length ? Math.round(hits / done.length * 100) + "%" : "－"}</b><span>上線後誤差 ≤0.1 元</span></div>
+        <div class="stat"><b>${Math.round(p.model.gas.within01 * 100)}%</b><span>回測誤差 ≤0.1 元（${p.model.gas.n} 週）</span></div>
+        <div class="stat"><b>±${p.model.gas.mae.toFixed(2)}</b><span>回測平均誤差（元）</span></div>
+      </div>
+      ${p.log.length ? `<table>
+        <tr><th>調價日</th><th>預測汽油</th><th>實際</th><th>預測柴油</th><th>實際</th></tr>
+        ${[...p.log].reverse().slice(0, 12).map(e => `
+          <tr><td>${e.date.slice(5)}</td>
+            <td class="${cls(e.predGas)}">${sign(e.predGas)}</td>
+            <td>${e.actualGas == null ? "⏳" : `<span class="${Math.abs(e.predGas - e.actualGas) <= 0.10001 ? "hit" : "miss"}">${sign(e.actualGas)}</span>`}</td>
+            <td class="${cls(e.predDiesel)}">${sign(e.predDiesel)}</td>
+            <td>${e.actualDiesel == null ? "⏳" : `<span class="${Math.abs(e.predDiesel - e.actualDiesel) <= 0.10001 ? "hit" : "miss"}">${sign(e.actualDiesel)}</span>`}</td>
+          </tr>`).join("")}
+      </table>` : ""}
+      <p class="expl" style="margin-top:10px">
+        模型：3 特徵線性迴歸（7D3B 週均價變動比例、上漲不對稱項、前次調價），每週用全部歷史重新訓練。
+        回測 R²=${p.model.gas.r2}。沒納入匯率與平穩機制，所以凍漲、緩漲期間會失準——這正是準確度表存在的原因 🙂
+      </p>
+    </div>`;
+}
+main().catch(e => { $("app").innerHTML = `<div class="loading">載入失敗：${e.message}</div>`; });
+</script>
+</body>
+</html>
