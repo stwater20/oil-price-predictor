@@ -1,5 +1,5 @@
 {
-  "updated": "2026/11/16",
+  "updated": "2026/11/23",
   "note": "每週由 GitHub Action 自動更新：回填上週預測的實際牌價、附加本週最新預測。",
   "entries": [
     {
@@ -159,6 +159,14 @@
       "madeOn": "2026/11/16",
       "basedOn": 32.7,
       "predicted": 29,
+      "actual": 32.7,
+      "correct": false
+    },
+    {
+      "predDate": "2026/11/30",
+      "madeOn": "2026/11/23",
+      "basedOn": 32.7,
+      "predicted": 31.7,
       "actual": null,
       "correct": null
     }
